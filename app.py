@@ -83,3 +83,4 @@ elif mod == "👴 Companion (Pentru Seniori)":
 
         st.session_state.istoric.append({"rol": "assistant", "text": res.text})
 
+
