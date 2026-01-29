@@ -40,9 +40,14 @@ except Exception as e:
     st.stop()
 
 # --- FUNCȚIE VOCE ---
+# --- FUNCȚIE VOCE (Modificată să nu zică "Asterix") ---
 def vorbeste(text):
+    # 1. Curățăm textul de simboluri Markdown (* și #)
+    text_curat = text.replace("*", "").replace("#", "")
+    
     try:
-        tts = gTTS(text=text, lang='ro')
+        # Trimitem la voce doar textul curat
+        tts = gTTS(text=text_curat, lang='ro')
         audio_buffer = io.BytesIO()
         tts.write_to_fp(audio_buffer)
         audio_buffer.seek(0)
@@ -96,4 +101,5 @@ elif mod == "👴 Companion (Seniori)":
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare: {e}")
+
 
