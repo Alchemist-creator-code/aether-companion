@@ -11,6 +11,7 @@ try:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
         
+        # SCHIMBARE: Folosim "gemini-pro" pentru că este compatibil cu orice versiune
         model = genai.GenerativeModel("gemini-pro")
     else:
         st.error("⚠️ Cheia API lipsește din Secrets!")
@@ -71,6 +72,7 @@ elif mod == "👴 Discuție":
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare AI: {e}")
+
 
 
 
