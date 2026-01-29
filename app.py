@@ -14,7 +14,7 @@ try:
         api_key = "AIzaSyD6u1h78-OET787KnzrOKX_x-Z_UYmQ2fM"
     
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("models/gemini-2.5-flash")
+    model = genai.GenerativeModel("models/gemini-1.5-flash")
 except:
     st.error("Lipsește Cheia API Google.")
 
@@ -82,3 +82,4 @@ elif mod == "👴 Companion (Pentru Seniori)":
                 vorbeste(res.text)
 
         st.session_state.istoric.append({"rol": "assistant", "text": res.text})
+
