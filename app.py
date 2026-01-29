@@ -6,19 +6,37 @@ import io
 # --- CONFIGURARE ---
 st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
 
-try:
-    if "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        genai.configure(api_key=api_key)
-        
-        # SCHIMBARE MAJORĂ: Folosim "gemini-pro".
-        # Acest model este compatibil cu toate versiunile de server.
-        model = genai.GenerativeModel("gemini-pro")
-    else:
-        st.error("⚠️ Lipsește cheia din Secrets!")
+# --- FUNCȚIE DE CONECTARE INTELIGENTĂ ---
+def gaseste_model_activ():
+    if "GOOGLE_API_KEY" not in st.secrets:
+        st.error("⚠️ Cheia API lipsește din Secrets!")
         st.stop()
+        
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+    
+    # 1. Întrebăm Google: "Ce modele am disponibile?"
+    try:
+        for m in genai.list_models():
+            # Căutăm primul model care știe să genereze text ('generateContent')
+            if 'generateContent' in m.supported_generation_methods:
+                # Am găsit unul! Îl returnăm direct.
+                return genai.GenerativeModel(m.name), m.name
+    except Exception as e:
+        st.error(f"Eroare la scanarea modelelor: {e}")
+        st.stop()
+        
+    # Dacă ajungem aici, e grav
+    st.error("❌ Nu am găsit niciun model valid în contul tău Google.")
+    st.stop()
+
+# --- INIȚIALIZARE ---
+try:
+    model, nume_model = gaseste_model_activ()
+    # Afișăm discret ce model a găsit, ca să știm că merge
+    st.toast(f"Conectat la: {nume_model}", icon="✅")
 except Exception as e:
-    st.error(f"Eroare conectare: {e}")
+    st.error(f"Eroare critică: {e}")
     st.stop()
 
 # --- FUNCȚIE VOCE ---
@@ -78,5 +96,4 @@ elif mod == "👴 Companion (Seniori)":
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare: {e}")
-
 
