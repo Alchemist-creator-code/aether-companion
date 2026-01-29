@@ -4,20 +4,36 @@ from gtts import gTTS
 import io
 
 # --- CONFIGURARE ---
-# Aici va trebui să pui cheia ta sau să o configurezi în Cloud la "Secrets"
-# Dacă testezi local, pune cheia ta între ghilimele.
-# Pe Cloud, vei folosi st.secrets["GOOGLE_API_KEY"]
+# Luăm cheia DOAR din secretele Streamlit.
+# Nu o mai scriem aici, pentru siguranță.
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
+        genai.configure(api_key=api_key)
+        
+        # AICI ERA EROAREA: Am scos "models/" din față
+        model = genai.GenerativeModel("gemini-1.5-flash")
     else:
-        api_key = "AIzaSyD6u1h78-OET787KnzrOKX_x-Z_UYmQ2fM"
-    
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("models/gemini-1.5-flash")
-except:
-    st.error("Lipsește Cheia API Google.")
+        st.error("⚠️ Lipsește Cheia API din Secrets!")
+        st.stop()
+except Exception as e:
+    st.error(f"Eroare la configurare: {e}")
 
+st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
+
+# --- FUNCȚIE VOCE ---
+def vorbeste(text):
+    try:
+        tts = gTTS(text=text, lang='ro')
+        audio_buffer = io.BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        # Autoplay activat
+        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
+    except:
+        pass
+
+# ... (Restul codului tău rămâne la fel de aici în jos) ...
 st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
 
 # --- FUNCȚIE VOCE ---
@@ -82,5 +98,6 @@ elif mod == "👴 Companion (Pentru Seniori)":
                 vorbeste(res.text)
 
         st.session_state.istoric.append({"rol": "assistant", "text": res.text})
+
 
 
