@@ -27,7 +27,7 @@ def vorbeste(text):
         audio_buffer = io.BytesIO()
         tts.write_to_fp(audio_buffer)
         audio_buffer.seek(0)
-        st.audio(audio_buffer, format='audio/mp3', start_time=0)
+        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
     except:
         pass
 
@@ -80,4 +80,5 @@ elif mod == "👴 Companion (Pentru Seniori)":
                 res = model.generate_content(prompt)
                 st.write(res.text)
                 vorbeste(res.text)
+
         st.session_state.istoric.append({"rol": "assistant", "text": res.text})
