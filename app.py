@@ -50,13 +50,18 @@ async def genereaza_audio_neural(text):
     mp3_fp.seek(0)
     return mp3_fp
 
+# --- FUNCȚIE VOCE (Optimizată pentru iPhone/iOS) ---
 def vorbeste(text):
     try:
-        # Rulăm funcția asincronă într-un mod compatibil cu Streamlit
+        # Generăm sunetul
         audio_buffer = asyncio.run(genereaza_audio_neural(text))
-        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
+        
+        # TRUCUL PENTRU IPHONE:
+        # 1. Transformăm buffer-ul în biți cruzi (.getvalue())
+        # 2. Folosim formatul 'audio/mpeg' (oficial), nu 'audio/mp3'
+        st.audio(audio_buffer.getvalue(), format='audio/mpeg', autoplay=True)
     except Exception as e:
-        st.warning(f"Eroare voce: {e}")
+        st.warning(f"Eroare sunet: {e}")
 
 # --- INTERFAȚA ---
 st.title("🤗 Aether Companion")
@@ -106,4 +111,5 @@ elif mod == "👴 Companion (Seniori)":
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare: {e}")
+
 
