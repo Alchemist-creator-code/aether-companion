@@ -6,25 +6,19 @@ import io
 # --- CONFIGURARE ---
 st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
 
-# --- CONECTARE (Cu afișarea erorii exacte) ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
         
-        # Folosim modelul standard 1.5 Flash
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
-        # TEST RAPID: Încercăm să salutăm AI-ul. 
-        # Dacă cheia e proastă, aici va crăpa și îți va spune DE CE.
-        response = model.generate_content("Test conexiune.")
+        # SCHIMBARE MAJORĂ: Folosim "gemini-pro".
+        # Acest model este compatibil cu toate versiunile de server.
+        model = genai.GenerativeModel("gemini-pro")
     else:
         st.error("⚠️ Lipsește cheia din Secrets!")
         st.stop()
 except Exception as e:
-    # AICI ESTE SECRETUL: Îți arătăm eroarea reală
-    st.error(f"⛔ EROARE CRITICĂ GOOGLE: {e}")
-    st.warning("Dacă scrie 'API key not valid', trebuie să faci o cheie nouă pe Google AI Studio.")
+    st.error(f"Eroare conectare: {e}")
     st.stop()
 
 # --- FUNCȚIE VOCE ---
@@ -41,7 +35,6 @@ def vorbeste(text):
 # --- INTERFAȚA ---
 st.title("🤗 Aether Companion")
 
-# Meniu
 mod = st.radio("Alege modul:", ["📖 Povestitor (Copii)", "👴 Companion (Seniori)"])
 
 if mod == "📖 Povestitor (Copii)":
@@ -58,7 +51,7 @@ if mod == "📖 Povestitor (Copii)":
                     st.markdown(res.text)
                     vorbeste(res.text)
                 except Exception as e:
-                    st.error(f"Eroare generare: {e}")
+                    st.error(f"Eroare: {e}")
 
 elif mod == "👴 Companion (Seniori)":
     st.image("https://cdn-icons-png.flaticon.com/512/2639/2639260.png", width=100)
@@ -79,12 +72,11 @@ elif mod == "👴 Companion (Seniori)":
         with st.chat_message("assistant"):
             with st.spinner("..."):
                 try:
-                    msg_ai = model.generate_content(f"Ești un companion empatic pt vârstnici. Răspunde la: {prompt}")
+                    msg_ai = model.generate_content(f"Ești un companion empatic. Răspunde scurt la: {prompt}")
                     st.write(msg_ai.text)
                     vorbeste(msg_ai.text)
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare: {e}")
-
 
 
