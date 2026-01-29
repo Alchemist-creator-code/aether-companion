@@ -1,12 +1,13 @@
 import streamlit as st
 import google.generativeai as genai
-from gtts import gTTS
+import edge_tts
+import asyncio
 import io
 
 # --- CONFIGURARE ---
 st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
 
-# --- FUNCȚIE DE CONECTARE INTELIGENTĂ ---
+# --- CONECTARE AI ---
 def gaseste_model_activ():
     if "GOOGLE_API_KEY" not in st.secrets:
         st.error("⚠️ Cheia API lipsește din Secrets!")
@@ -15,45 +16,47 @@ def gaseste_model_activ():
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
     
-    # 1. Întrebăm Google: "Ce modele am disponibile?"
     try:
         for m in genai.list_models():
-            # Căutăm primul model care știe să genereze text ('generateContent')
             if 'generateContent' in m.supported_generation_methods:
-                # Am găsit unul! Îl returnăm direct.
-                return genai.GenerativeModel(m.name), m.name
-    except Exception as e:
-        st.error(f"Eroare la scanarea modelelor: {e}")
-        st.stop()
-        
-    # Dacă ajungem aici, e grav
-    st.error("❌ Nu am găsit niciun model valid în contul tău Google.")
-    st.stop()
-
-# --- INIȚIALIZARE ---
-try:
-    model, nume_model = gaseste_model_activ()
-    # Afișăm discret ce model a găsit, ca să știm că merge
-    st.toast(f"Conectat la: {nume_model}", icon="✅")
-except Exception as e:
-    st.error(f"Eroare critică: {e}")
-    st.stop()
-
-# --- FUNCȚIE VOCE ---
-# --- FUNCȚIE VOCE (Modificată să nu zică "Asterix") ---
-def vorbeste(text):
-    # 1. Curățăm textul de simboluri Markdown (* și #)
-    text_curat = text.replace("*", "").replace("#", "")
-    
-    try:
-        # Trimitem la voce doar textul curat
-        tts = gTTS(text=text_curat, lang='ro')
-        audio_buffer = io.BytesIO()
-        tts.write_to_fp(audio_buffer)
-        audio_buffer.seek(0)
-        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
+                return genai.GenerativeModel(m.name)
     except:
         pass
+    
+    st.error("❌ Eroare la conectarea cu Google AI.")
+    st.stop()
+
+# Inițializăm AI-ul
+try:
+    model = gaseste_model_activ()
+except:
+    st.stop()
+
+# --- FUNCȚIE VOCE NOUĂ (MICROSOFT NEURAL) ---
+async def genereaza_audio_neural(text):
+    # Curățăm textul de steluțe și diez-uri
+    text_curat = text.replace("*", "").replace("#", "")
+    
+    # Folosim vocea 'Alina' (Neurală) - sună foarte uman
+    # Există și 'ro-RO-EmilNeural' pentru voce de bărbat
+    comunicare = edge_tts.Communicate(text_curat, "ro-RO-AlinaNeural")
+    
+    # Salvăm în memorie temporară
+    mp3_fp = io.BytesIO()
+    async for chunk in comunicare.stream():
+        if chunk["type"] == "audio":
+            mp3_fp.write(chunk["data"])
+            
+    mp3_fp.seek(0)
+    return mp3_fp
+
+def vorbeste(text):
+    try:
+        # Rulăm funcția asincronă într-un mod compatibil cu Streamlit
+        audio_buffer = asyncio.run(genereaza_audio_neural(text))
+        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
+    except Exception as e:
+        st.warning(f"Eroare voce: {e}")
 
 # --- INTERFAȚA ---
 st.title("🤗 Aether Companion")
@@ -95,11 +98,12 @@ elif mod == "👴 Companion (Seniori)":
         with st.chat_message("assistant"):
             with st.spinner("..."):
                 try:
-                    msg_ai = model.generate_content(f"Ești un companion empatic. Răspunde scurt la: {prompt}")
+                    # Instruim AI-ul să nu folosească liste cu puncte ca să nu sune sacadat
+                    prompt_ai = f"Ești un companion empatic. Răspunde cursiv, în fraze, fără liste și fără simboluri. Întrebare: {prompt}"
+                    msg_ai = model.generate_content(prompt_ai)
                     st.write(msg_ai.text)
                     vorbeste(msg_ai.text)
                     st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
                 except Exception as e:
                     st.error(f"Eroare: {e}")
-
 
