@@ -1,79 +1,45 @@
 import streamlit as st
 import google.generativeai as genai
-from gtts import gTTS
-import io
 
-# --- CONFIGURARE ---
-st.set_page_config(page_title="Aether: Companion", page_icon="🤗", layout="centered")
+st.set_page_config(page_title="Aether: Diagnostic", page_icon="🕵️")
+st.title("🕵️ Aether: Modul Detectiv")
 
+# --- VERIFICARE ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
+        st.success("✅ Cheia API a fost acceptată de sistem.")
         
-        # SCHIMBARE: Folosim "gemini-pro" pentru că este compatibil cu orice versiune
-        model = genai.GenerativeModel("gemini-pro")
+        st.markdown("### 📋 Ce modele vede Google pentru contul tău?")
+        st.write("Sistemul caută lista de modele disponibile...")
+        
+        # Întrebăm Google ce modele avem
+        gasit_ceva = False
+        modele_disponibile = []
+        
+        try:
+            for m in genai.list_models():
+                # Căutăm doar modelele care pot genera text
+                if 'generateContent' in m.supported_generation_methods:
+                    st.code(m.name) # Afișăm numele exact
+                    modele_disponibile.append(m.name)
+                    gasit_ceva = True
+            
+            if not gasit_ceva:
+                st.error("❌ Google spune că nu ai acces la niciun model! Verifică dacă ai activat 'Generative Language API' în consola Google Cloud sau fă o cheie nouă.")
+            else:
+                st.success(f"✅ Am găsit {len(modele_disponibile)} modele!")
+                st.info("Copiază unul dintre numele de mai sus (de exemplu 'models/gemini-1.5-flash') și spune-mi care apare în listă.")
+
+        except Exception as e:
+            st.error(f"Eroare la citirea listei: {e}")
+
     else:
         st.error("⚠️ Cheia API lipsește din Secrets!")
-        st.stop()
+
 except Exception as e:
-    st.error(f"Eroare la conectare: {e}")
-
-# --- FUNCȚIE VOCE ---
-def vorbeste(text):
-    try:
-        tts = gTTS(text=text, lang='ro')
-        audio_buffer = io.BytesIO()
-        tts.write_to_fp(audio_buffer)
-        audio_buffer.seek(0)
-        st.audio(audio_buffer, format='audio/mp3', autoplay=True)
-    except:
-        pass
-
-# --- INTERFAȚA ---
-st.title("🤗 Aether Companion")
-
-# Meniu simplificat
-mod = st.radio("Ce facem azi?", ["📖 Povestitor", "👴 Discuție"])
-
-if mod == "📖 Povestitor":
-    tema = st.text_input("Despre ce să fie povestea?")
-    if st.button("Spune Povestea"):
-        if not tema:
-            st.warning("Scrie o temă întâi!")
-        else:
-            with st.spinner("Scriu povestea..."):
-                try:
-                    res = model.generate_content(f"Scrie o poveste scurtă pt copii despre {tema}, limba română.")
-                    st.write(res.text)
-                    vorbeste(res.text)
-                except Exception as e:
-                    st.error(f"Eroare AI: {e}")
-
-elif mod == "👴 Discuție":
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-
-    if prompt := st.chat_input("Scrie aici..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Mă gândesc..."):
-                try:
-                    msg_ai = model.generate_content(f"Ești un companion empatic. Răspunde la: {prompt}")
-                    st.write(msg_ai.text)
-                    vorbeste(msg_ai.text)
-                    st.session_state.messages.append({"role": "assistant", "content": msg_ai.text})
-                except Exception as e:
-                    st.error(f"Eroare AI: {e}")
-
-
+    st.error(f"Eroare critică: {e}")
 
 
 
